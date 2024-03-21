@@ -6,6 +6,15 @@ This project was bootstrapped with [Create React App](https://github.com/faceboo
 
 In the project directory, you can run:
 
+
+### npm install 
+
+npm i react-speech-kit
+
+
+dont forget to run above two commands in order to install react speech kit
+
+
 ### `npm start`
 
 Runs the app in the development mode.\
