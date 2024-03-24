@@ -1,6 +1,4 @@
-import React, { useState, useEffect } from 'react';
-
-
+import React, { useState, useEffect, useRef } from 'react';
 
 const MainSection = () => {
     const [text, setText] = useState('');
@@ -9,7 +7,10 @@ const MainSection = () => {
     const [vowelCount, setVowelCount] = useState(0);
     const [consonantCount, setConsonantCount] = useState(0);
     const [specialCharCount, setSpecialCharCount] = useState(0);
-    const [buttonColor, setButtonColor] = useState('white'); 
+    const [buttonColor, setButtonColor] = useState('white');
+    const [speaking, setSpeaking] = useState(false);
+    const [recognizing, setRecognizing] = useState(false);
+    const recognitionRef = useRef(null);
 
     useEffect(() => {
         const updateCounts = () => {
@@ -28,10 +29,16 @@ const MainSection = () => {
         };
 
         const speakText = () => {
+            if (text.trim() === '') {
+                alert('Speak Something!');
+                return;
+            }
+
             const speech = new SpeechSynthesisUtterance(text);
             const voices = window.speechSynthesis.getVoices();
-            console.log("Available voices:", voices);
             speech.voice = voices[10];
+            speech.onstart = () => setSpeaking(true);
+            speech.onend = () => setSpeaking(false);
             window.speechSynthesis.speak(speech);
             setButtonColor('green');
             setTimeout(() => {
@@ -49,8 +56,51 @@ const MainSection = () => {
         };
     }, [text]);
 
+    useEffect(() => {
+        if (recognizing) {
+            recognitionRef.current = new window.webkitSpeechRecognition();
+            recognitionRef.current.continuous = true;
+            recognitionRef.current.interimResults = true;
+            recognitionRef.current.lang = 'en-US';
+
+            recognitionRef.current.onstart = () => {
+                console.log('Speech recognition started');
+            };
+
+            recognitionRef.current.onresult = (event) => {
+                const transcript = Array.from(event.results)
+                    .map(result => result[0].transcript)
+                    .join('');
+
+                setText(transcript);
+            };
+
+            recognitionRef.current.onerror = (event) => {
+                console.error('Speech recognition error:', event.error);
+                setRecognizing(false);
+            };
+
+            recognitionRef.current.onend = () => {
+                console.log('Speech recognition ended');
+                setRecognizing(false);
+            };
+
+            recognitionRef.current.start();
+        }
+
+        return () => {
+            if (recognizing && recognitionRef.current) {
+                recognitionRef.current.stop();
+            }
+        };
+    }, [recognizing]);
+
     const handleChange = (e) => {
         setText(e.target.value);
+    };
+
+    const handleMicClick = () => {
+        setRecognizing(true);
     };
 
     return (
@@ -62,6 +112,7 @@ const MainSection = () => {
                     onChange={handleChange}
                 ></textarea>
                 <button id="speakButton" style={{ backgroundColor: buttonColor }}>Speak</button>
+                <button id="micButton" onClick={handleMicClick}>Mic</button>
             </div>
             <div className='final-data'>
                 <table>
@@ -86,10 +137,13 @@ const MainSection = () => {
                             <td>Special Character Count:</td>
                             <td>{specialCharCount}</td>
                         </tr>
+                        <tr>
+                            <td>Speaking:</td>
+                            <td>{speaking ? 'Speaking...' : 'Idle'}</td>
+                        </tr>
                     </tbody>
                 </table>
             </div>
-            
         </section>
     );
 };
